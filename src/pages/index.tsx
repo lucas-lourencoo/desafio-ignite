@@ -32,29 +32,32 @@ interface HomeProps {
 }
 
 export default function Home({ postsPagination }: HomeProps) {
-  const [newPosts, setNewPosts] = useState({} as PostPagination);
+  const [posts, setPosts] = useState(postsPagination);
 
-  async function getPosts() {
-    await fetch(postsPagination.next_page)
-      .then(response => response.json())
-      .then(data =>
-        setNewPosts({
+  function getPosts() {
+    fetch(posts.next_page)
+      .then(async response => await response.json())
+      .then((data: PostPagination) => {
+        setPosts({
           next_page: data.next_page,
-          results: data.results.map(post => {
-            return {
-              uid: post.uid,
-              first_publication_date: format(new Date(), 'cc LLL yyyy', {
-                locale: ptBR,
-              }),
-              data: {
-                title: RichText.asText(post.data.title),
-                subtitle: RichText.asText(post.data.subtitle),
-                author: RichText.asText(post.data.author),
-              },
-            };
-          }),
-        })
-      );
+          results: [
+            ...posts.results,
+            ...data.results.map((post: Post) => {
+              return {
+                uid: post.uid,
+                first_publication_date: format(new Date(), 'cc LLL yyyy', {
+                  locale: ptBR,
+                }),
+                data: {
+                  title: RichText.asText(post.data.title),
+                  subtitle: RichText.asText(post.data.subtitle),
+                  author: RichText.asText(post.data.author),
+                },
+              };
+            }),
+          ],
+        });
+      });
   }
 
   return (
@@ -63,11 +66,11 @@ export default function Home({ postsPagination }: HomeProps) {
         <title>Spacetravelling</title>
       </Head>
 
-      <main className={styles.container}>
+      <main className={commonStyles.container}>
         <div className={styles.posts}>
-          {postsPagination.results.map(post => (
+          {posts.results.map(post => (
             <Link href={`/post/${post.uid}`} key={post.uid}>
-              <a key={post.uid}>
+              <a href="">
                 <strong>{post.data.title}</strong>
                 <p>{post.data.subtitle}</p>
                 <div>
@@ -78,20 +81,7 @@ export default function Home({ postsPagination }: HomeProps) {
             </Link>
           ))}
 
-          {newPosts.results ? (
-            newPosts.results.map(post => (
-              <Link href={`/post/${post.uid}`} key={post.uid}>
-                <a key={post.uid}>
-                  <strong>{post.data.title}</strong>
-                  <p>{post.data.subtitle}</p>
-                  <div>
-                    <time>{post.first_publication_date}</time>
-                    <span>{post.data.author}</span>
-                  </div>
-                </a>
-              </Link>
-            ))
-          ) : (
+          {posts.next_page && (
             <button
               onClick={() => getPosts()}
               type="button"
@@ -111,7 +101,7 @@ export const getStaticProps: GetStaticProps = async () => {
 
   const postsResponse = await prismic.query(
     Prismic.Predicates.at('document.type', 'posts'),
-    { pageSize: 1 }
+    { pageSize: 2 }
   );
 
   const posts = postsResponse.results.map(post => {
