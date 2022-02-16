@@ -98,8 +98,6 @@ export const getStaticProps: GetStaticProps = async ({ params }) => {
   const prismic = getPrismicClient();
   const response = await prismic.getByUID('posts', String(slug), {});
 
-  console.log(response);
-
   const post = {
     first_publication_date: format(new Date(), 'cc LLL yyyy', {
       locale: ptBR,
